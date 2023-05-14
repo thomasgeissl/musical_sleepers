@@ -5,12 +5,14 @@
 #include "./config.h"
 
 int ID = 1;
+const int hitThreshold = 5000; // Adjust this value based on the sensitivity of the accelerometer and the magnitude of hits
 
 WiFiUDP Udp;
 GY521 sensor(0x68);
 
 // piezo
 int piezoValue;
+int touchValue;
 // angle
 float angleX;
 float angleY;
@@ -26,6 +28,8 @@ void readValues()
 {
   // piezo
   piezoValue = analogRead(PIEZO_PIN);
+  // touch
+  touchValue = touchRead(TOUCH_PIN);
   sensor.read();
   // angle
   angleX = sensor.getAngleX();
@@ -43,6 +47,13 @@ void processValues()
 {
   // TODO: do some onset detection based on piezoValue
   // or maybe even accelerometer data
+  int16_t accelMagnitude = sqrt(sq(accelX) + sq(accelY) + sq(accelZ));
+  if (accelMagnitude > hitThreshold)
+  {
+    Serial.println("Hit detected!");
+    // Perform additional actions or trigger events as needed
+    // ...
+  }
 }
 
 void sendOSC()
@@ -55,6 +66,17 @@ void sendOSC()
   piezoMessage.send(Udp);
   Udp.endPacket();
   piezoMessage.empty();
+  delay(1);
+  
+  // touch
+  auto touchAddress = String("/sleeper/") + String(ID) + String("/touch");
+  OSCMessage touchMessage(touchAddress.c_str());
+  piezoMessage.add(touchValue);
+  Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
+  touchMessage.send(Udp);
+  Udp.endPacket();
+  touchMessage.empty();
+  delay(1);
 
   // angle
   auto angleAddress = String("/sleeper/") + String(ID) + String("/angle");
@@ -66,6 +88,7 @@ void sendOSC()
   angleMessage.send(Udp);
   Udp.endPacket();
   angleMessage.empty();
+  delay(1);
 
   // accel
   auto accelAddress = String("/sleeper/") + String(ID) + String("/accel");
@@ -77,6 +100,7 @@ void sendOSC()
   accelMessage.send(Udp);
   Udp.endPacket();
   accelMessage.empty();
+  delay(1);
 
   // temperature
   auto temperatureAddress = String("/sleeper/") + String(ID) + String("/temperature");
@@ -86,6 +110,7 @@ void sendOSC()
   temperatureMessage.send(Udp); // Send the bytes to the SLIP stream
   Udp.endPacket();              // Mark the end of the OSC Packet
   temperatureMessage.empty();
+  delay(1);
 }
 
 void setup()
