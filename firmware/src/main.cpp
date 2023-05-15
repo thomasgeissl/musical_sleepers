@@ -4,14 +4,16 @@
 #include "GY521.h"
 #include "./config.h"
 
-int ID = 1;
-const int hitThreshold = 5000; // Adjust this value based on the sensitivity of the accelerometer and the magnitude of hits
 
 WiFiUDP Udp;
 GY521 sensor(0x68);
 
+unsigned long frameCounter = 0;
 // piezo
 int piezoValue;
+bool piezoOnsetDetected = false;
+unsigned long piezoOnsetTimestamp;
+// touch
 int touchValue;
 // angle
 float angleX;
@@ -21,6 +23,8 @@ float angleZ;
 float accelX;
 float accelY;
 float accelZ;
+bool accelOnsetDetected = false;
+unsigned long accelOnsetTimestamp;
 // temperature
 float temperature;
 
@@ -45,42 +49,53 @@ void readValues()
 
 void processValues()
 {
+  auto timestamp = millis();
   // TODO: do some onset detection based on piezoValue
   // or maybe even accelerometer data
   int16_t accelMagnitude = sqrt(sq(accelX) + sq(accelY) + sq(accelZ));
-  if (accelMagnitude > hitThreshold)
+  if (accelMagnitude > accelOnsetThreshold && accelOnsetThreshold - timestamp > accelOnsetDebounceTime)
   {
-    Serial.println("Hit detected!");
-    // Perform additional actions or trigger events as needed
-    // ...
+    accelOnsetDetected = true;
+    accelOnsetTimestamp = timestamp;
+  }
+  if (piezoValue > piezoOnsetThreshold && piezoOnsetTimestamp - timestamp > piezoOnsetDebounceTime)
+  {
+    piezoOnsetDetected = true;
+    piezoOnsetTimestamp = timestamp;
   }
 }
 
 void sendOSC()
 {
+
+#ifdef USE_PIEZO
   // piezo
-  auto piezoAddress = String("/sleeper/") + String(ID) + String("/piezo");
-  OSCMessage piezoMessage(piezoAddress.c_str());
+  OSCMessage piezoMessage("/sleeper/piezo");
+  piezoMessage.add(ID);
   piezoMessage.add(piezoValue);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   piezoMessage.send(Udp);
   Udp.endPacket();
   piezoMessage.empty();
   delay(1);
-  
+#endif
+
+#ifdef USE_TOUCH
   // touch
-  auto touchAddress = String("/sleeper/") + String(ID) + String("/touch");
-  OSCMessage touchMessage(touchAddress.c_str());
+  OSCMessage touchMessage("/sleeper/touch");
+  piezoMessage.add(ID);
   piezoMessage.add(touchValue);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   touchMessage.send(Udp);
   Udp.endPacket();
   touchMessage.empty();
   delay(1);
+#endif
 
+#ifdef USE_ANGLE
   // angle
-  auto angleAddress = String("/sleeper/") + String(ID) + String("/angle");
-  OSCMessage angleMessage(angleAddress.c_str());
+  OSCMessage angleMessage("/sleeper/angle");
+  angleMessage.add(ID);
   angleMessage.add(angleX);
   angleMessage.add(angleY);
   angleMessage.add(angleZ);
@@ -89,10 +104,12 @@ void sendOSC()
   Udp.endPacket();
   angleMessage.empty();
   delay(1);
+#endif
 
+#ifdef USE_ACCEL
   // accel
-  auto accelAddress = String("/sleeper/") + String(ID) + String("/accel");
-  OSCMessage accelMessage(accelAddress.c_str());
+  OSCMessage accelMessage("/sleeper/accel");
+  accelMessage.add(ID);
   accelMessage.add(accelX);
   accelMessage.add(accelY);
   accelMessage.add(accelZ);
@@ -101,16 +118,47 @@ void sendOSC()
   Udp.endPacket();
   accelMessage.empty();
   delay(1);
+#endif
 
+#ifdef USE_TEMPERATURE
   // temperature
-  auto temperatureAddress = String("/sleeper/") + String(ID) + String("/temperature");
-  OSCMessage temperatureMessage(temperatureAddress.c_str());
+  OSCMessage temperatureMessage("/sleeper/temperature");
+  temperatureMessage.add(ID);
   temperatureMessage.add(temperature);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
-  temperatureMessage.send(Udp); // Send the bytes to the SLIP stream
-  Udp.endPacket();              // Mark the end of the OSC Packet
+  temperatureMessage.send(Udp);
+  Udp.endPacket();
   temperatureMessage.empty();
   delay(1);
+#endif
+
+#ifdef USE_PIEZO_ONSET
+  // piezoOnset
+  if (piezoOnsetDetected)
+  {
+    piezoOnsetDetected = false;
+    OSCMessage piezoOnsetMessage("/sleeper/piezo/onset");
+    piezoOnsetMessage.add(ID);
+    Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
+    piezoOnsetMessage.send(Udp);
+    Udp.endPacket();
+    piezoOnsetMessage.empty();
+  }
+#endif
+
+#ifdef USE_ACCEL_ONSET
+  // accelOnset
+  if (accelOnsetDetected)
+  {
+    accelOnsetDetected = false;
+    OSCMessage accelOnsetMessage("/sleeper/accel/onset");
+    accelOnsetMessage.add(ID);
+    Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
+    accelOnsetMessage.send(Udp);
+    Udp.endPacket();
+    accelOnsetMessage.empty();
+  }
+#endif
 }
 
 void setup()
@@ -162,8 +210,11 @@ void setup()
 
 void loop()
 {
+  frameCounter++;
   readValues();
   processValues();
-  sendOSC();
-  delay(10);
+  if (frameCounter % 10 == 0)
+  {
+    sendOSC();
+  }
 }
