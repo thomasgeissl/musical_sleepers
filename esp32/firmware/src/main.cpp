@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <OSCMessage.h>
 #include "GY521.h"
+#include "RunningAverage.h"
 #include "./config.h"
 
 
@@ -14,7 +15,9 @@ int piezoValue;
 bool piezoOnsetDetected = false;
 unsigned long piezoOnsetTimestamp;
 // touch
-float touchValue;
+RunningAverage touchValue(10);
+bool touched = false;
+
 // angle
 float angleX;
 float angleY;
@@ -33,7 +36,7 @@ void readValues()
   // piezo
   piezoValue = analogRead(PIEZO_PIN);
   // touch
-  touchValue = touchRead(TOUCH_PIN);
+  touchValue.addValue(touchRead(TOUCH_PIN));
   sensor.read();
   // angle
   angleX = sensor.getAngleX();
@@ -50,8 +53,6 @@ void readValues()
 void processValues()
 {
   auto timestamp = millis();
-  // TODO: do some onset detection based on piezoValue
-  // or maybe even accelerometer data
   int16_t accelMagnitude = sqrt(sq(accelX) + sq(accelY) + sq(accelZ));
   if (accelMagnitude > accelOnsetThreshold && accelOnsetThreshold + timestamp > accelOnsetDebounceTime)
   {
@@ -63,6 +64,7 @@ void processValues()
     piezoOnsetDetected = true;
     piezoOnsetTimestamp = timestamp;
   }
+  touched = touchValue.getAverage() < touchThreshold;
 }
 
 void sendOSC()
@@ -83,7 +85,7 @@ void sendOSC()
   // touch
   OSCMessage touchMessage("/sleeper/touch");
   touchMessage.add(ID);
-  touchMessage.add(touchValue);
+  touchMessage.add(touched);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   touchMessage.send(Udp);
   Udp.endPacket();
@@ -173,6 +175,7 @@ void setup()
   Serial.println("\nConnected to the WiFi network");
   Serial.print("Local ESP32 IP: ");
   Serial.println(WiFi.localIP());
+  delay(5000);
 
   Serial.println();
   Serial.println(__FILE__);
@@ -201,6 +204,9 @@ void setup()
   sensor.gxe = 10.702;
   sensor.gye = -6.436;
   sensor.gze = -0.676;
+
+  // touchAttachInterrupt(TOUCH_PIN, handleTouch, touchThreshold);
+  touchValue.clear();
 }
 
 void loop()
@@ -208,8 +214,5 @@ void loop()
   frameCounter++;
   readValues();
   processValues();
-  // if (frameCounter % 2 == 0)
-  {
-    sendOSC();
-  }
+  sendOSC();
 }
