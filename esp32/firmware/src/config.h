@@ -1,5 +1,4 @@
-#define SSID "tamlab"
-#define PASSWORD "windsteiger"
+#include "./credentials.h"
 #define DESTINATION_IP "255.255.255.255"
 #define DESTINATION_PORT 8000
 #define PIEZO_PIN 34
