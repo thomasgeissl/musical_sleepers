@@ -14,7 +14,7 @@ int piezoValue;
 bool piezoOnsetDetected = false;
 unsigned long piezoOnsetTimestamp;
 // touch
-int touchValue;
+float touchValue;
 // angle
 float angleX;
 float angleY;
@@ -77,19 +77,17 @@ void sendOSC()
   piezoMessage.send(Udp);
   Udp.endPacket();
   piezoMessage.empty();
-  delay(1);
 #endif
 
 #ifdef USE_TOUCH
   // touch
   OSCMessage touchMessage("/sleeper/touch");
-  piezoMessage.add(ID);
-  piezoMessage.add(touchValue);
+  touchMessage.add(ID);
+  touchMessage.add(touchValue);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   touchMessage.send(Udp);
   Udp.endPacket();
   touchMessage.empty();
-  delay(1);
 #endif
 
 #ifdef USE_ANGLE
@@ -103,7 +101,6 @@ void sendOSC()
   angleMessage.send(Udp);
   Udp.endPacket();
   angleMessage.empty();
-  delay(1);
 #endif
 
 #ifdef USE_ACCEL
@@ -117,7 +114,6 @@ void sendOSC()
   accelMessage.send(Udp);
   Udp.endPacket();
   accelMessage.empty();
-  delay(1);
 #endif
 
 #ifdef USE_TEMPERATURE
@@ -129,7 +125,6 @@ void sendOSC()
   temperatureMessage.send(Udp);
   Udp.endPacket();
   temperatureMessage.empty();
-  delay(1);
 #endif
 
 #ifdef USE_PIEZO_ONSET
@@ -213,7 +208,7 @@ void loop()
   frameCounter++;
   readValues();
   processValues();
-  if (frameCounter % 10 == 0)
+  // if (frameCounter % 2 == 0)
   {
     sendOSC();
   }

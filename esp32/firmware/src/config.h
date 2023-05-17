@@ -1,6 +1,6 @@
-#define SSID "TODO"
-#define PASSWORD "TODO"
-#define DESTINATION_IP "192.168.0.12"
+#define SSID "tamlab"
+#define PASSWORD "windsteiger"
+#define DESTINATION_IP "255.255.255.255"
 #define DESTINATION_PORT 8000
 #define PIEZO_PIN 34
 #define TOUCH_PIN 4
