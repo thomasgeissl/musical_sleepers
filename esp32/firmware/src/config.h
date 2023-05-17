@@ -7,5 +7,5 @@
 
 const int accelOnsetThreshold = 5000;
 const int accelOnsetDebounceTime = 50;
-const int piezoOnsetThreshold = 5000;
+const int piezoOnsetThreshold = 100;
 const int piezoOnsetDebounceTime = 50;

@@ -53,12 +53,12 @@ void processValues()
   // TODO: do some onset detection based on piezoValue
   // or maybe even accelerometer data
   int16_t accelMagnitude = sqrt(sq(accelX) + sq(accelY) + sq(accelZ));
-  if (accelMagnitude > accelOnsetThreshold && accelOnsetThreshold - timestamp > accelOnsetDebounceTime)
+  if (accelMagnitude > accelOnsetThreshold && accelOnsetThreshold + timestamp > accelOnsetDebounceTime)
   {
     accelOnsetDetected = true;
     accelOnsetTimestamp = timestamp;
   }
-  if (piezoValue > piezoOnsetThreshold && piezoOnsetTimestamp - timestamp > piezoOnsetDebounceTime)
+  if (piezoValue > piezoOnsetThreshold && timestamp > piezoOnsetTimestamp + piezoOnsetDebounceTime)
   {
     piezoOnsetDetected = true;
     piezoOnsetTimestamp = timestamp;
@@ -132,7 +132,7 @@ void sendOSC()
   if (piezoOnsetDetected)
   {
     piezoOnsetDetected = false;
-    OSCMessage piezoOnsetMessage("/sleeper/piezo/onset");
+    OSCMessage piezoOnsetMessage("/sleeper/piezo_onset");
     piezoOnsetMessage.add(ID);
     Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
     piezoOnsetMessage.send(Udp);
@@ -146,7 +146,7 @@ void sendOSC()
   if (accelOnsetDetected)
   {
     accelOnsetDetected = false;
-    OSCMessage accelOnsetMessage("/sleeper/accel/onset");
+    OSCMessage accelOnsetMessage("/sleeper/accel_onset");
     accelOnsetMessage.add(ID);
     Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
     accelOnsetMessage.send(Udp);

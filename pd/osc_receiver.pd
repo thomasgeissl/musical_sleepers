@@ -1,4 +1,4 @@
-#N canvas 194 128 1219 858 12;
+#N canvas 27 122 1656 858 12;
 #X obj 97 78 netreceive -u -b;
 #X obj 98 111 oscparse;
 #X msg 204 28 listen 0;
@@ -46,6 +46,18 @@
 #X text 1145 374 z;
 #X text 1022 373 y;
 #X obj 808 301 route accel;
+#X floatatom 281 510 5 0 0 0 - - -, f 5;
+#X floatatom 347 508 5 0 0 0 - - -, f 5;
+#X text 251 511 id;
+#X text 397 507 x;
+#X obj 277 437 route piezo;
+#X obj 278 474 unpack i i;
+#X floatatom 538 503 5 0 0 0 - - -, f 5;
+#X text 508 504 id;
+#X obj 534 430 route piezo_onset;
+#X obj 535 467 unpack i;
+#X obj 542 549 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc
+#000000 #000000;
 #X connect 0 0 1 0;
 #X connect 1 0 3 0;
 #X connect 2 0 0 0;
@@ -67,6 +79,8 @@
 #X connect 19 0 20 0;
 #X connect 19 0 29 0;
 #X connect 19 0 45 0;
+#X connect 19 0 50 0;
+#X connect 19 0 54 0;
 #X connect 20 0 21 0;
 #X connect 21 0 22 0;
 #X connect 21 1 23 0;
@@ -80,3 +94,9 @@
 #X connect 39 2 41 0;
 #X connect 39 3 42 0;
 #X connect 45 0 39 0;
+#X connect 50 0 51 0;
+#X connect 51 0 46 0;
+#X connect 51 1 47 0;
+#X connect 52 0 56 0;
+#X connect 54 0 55 0;
+#X connect 55 0 52 0;
