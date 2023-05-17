@@ -1,0 +1,17 @@
+#N canvas 446 198 450 300 12;
+#X obj 91 213 bonk~;
+#X obj 88 258 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#000000;
+#X obj 317 144 vu 15 120 empty empty -1 -8 0 10 #404040 #000000 1 0
+;
+#X obj 317 114 pvu~;
+#X obj 207 204 dac~;
+#X obj 209 86 osc~ 440;
+#X obj 231 145 *~ 0.3;
+#X obj 65 35 adc~ 1 2 3 4 5 6 7 8;
+#X connect 0 0 1 0;
+#X connect 3 0 2 0;
+#X connect 5 0 6 0;
+#X connect 7 0 0 0;
+#X connect 7 0 3 0;
+#X connect 7 0 4 0;
