@@ -5,8 +5,8 @@
 #define PIEZO_PIN 34
 #define TOUCH_PIN 4
 
-const int accelOnsetThreshold = 5000;
-const int accelOnsetDebounceTime = 50;
-const int piezoOnsetThreshold = 150;
-const int piezoOnsetDebounceTime = 50;
-const int touchThreshold = 50;
+const int _accelOnsetThreshold = 5000;
+const int _accelOnsetDebounceTime = 50;
+const int _piezoOnsetThreshold = 100;
+const int _piezoOnsetDebounceTime = 50;
+const int _touchThreshold = 50;

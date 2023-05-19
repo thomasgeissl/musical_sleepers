@@ -5,71 +5,96 @@
 #include "RunningAverage.h"
 #include "./config.h"
 
+xTaskHandle networkTaskHandle;
+bool _locked;
 
 WiFiUDP Udp;
-GY521 sensor(0x68);
+GY521 _sensor(0x68);
 
-unsigned long frameCounter = 0;
+unsigned long _frameCounter = 0;
 // piezo
-int piezoValue;
-bool piezoOnsetDetected = false;
-unsigned long piezoOnsetTimestamp;
+int _piezoValue;
+bool _piezoOnsetDetected = false;
+unsigned long _piezoOnsetTimestamp;
 // touch
-RunningAverage touchValue(10);
-bool touched = false;
+RunningAverage _touchValue(4);
+bool _touched = false;
 
 // angle
-float angleX;
-float angleY;
-float angleZ;
+float _angleX;
+float _angleY;
+float _angleZ;
 // accel
-float accelX;
-float accelY;
-float accelZ;
-bool accelOnsetDetected = false;
+float _accelX;
+float _accelY;
+float _accelZ;
+bool _accelOnsetDetected = false;
 unsigned long accelOnsetTimestamp;
 // temperature
-float temperature;
+float _temperature;
 
 void readValues()
 {
   // piezo
-  piezoValue = analogRead(PIEZO_PIN);
+  _piezoValue = analogRead(PIEZO_PIN);
   // touch
-  touchValue.addValue(touchRead(TOUCH_PIN));
-  sensor.read();
+  _touchValue.addValue(touchRead(TOUCH_PIN));
+
+#if defined(USE_ACCEL) || defined(USE_ANGLE) || defined(USE_ACCEL_ONSET) || defined(USE_TEMPERATURE)
+  _sensor.read();
   // angle
-  angleX = sensor.getAngleX();
-  angleY = sensor.getAngleY();
-  angleZ = sensor.getAngleZ();
+  _angleX = _sensor.getAngleX();
+  _angleY = _sensor.getAngleY();
+  _angleZ = _sensor.getAngleZ();
   // accel
-  accelX = sensor.getAccelX();
-  accelY = sensor.getAccelY();
-  accelZ = sensor.getAccelZ();
+  _accelX = _sensor.getAccelX();
+  _accelY = _sensor.getAccelY();
+  _accelZ = _sensor.getAccelZ();
+#endif
   // temperature
-  temperature = sensor.getTemperature();
+  _temperature = _sensor.getTemperature();
 }
 
 void processValues()
 {
   auto timestamp = millis();
+#ifdef USE_ACCEL_ONSET
   int16_t accelMagnitude = sqrt(sq(accelX) + sq(accelY) + sq(accelZ));
-  if (accelMagnitude > accelOnsetThreshold && accelOnsetThreshold + timestamp > accelOnsetDebounceTime)
+  if (_accelMagnitude > _accelOnsetThreshold && _accelOnsetThreshold + timestamp > _accelOnsetDebounceTime)
   {
-    accelOnsetDetected = true;
-    accelOnsetTimestamp = timestamp;
+    _accelOnsetDetected = true;
+    _accelOnsetTimestamp = timestamp;
   }
-  if (piezoValue > piezoOnsetThreshold && timestamp > piezoOnsetTimestamp + piezoOnsetDebounceTime)
+#endif
+#ifdef USE_PIEZO_ONSET
+  if (_piezoValue > _piezoOnsetThreshold && timestamp > _piezoOnsetTimestamp + _piezoOnsetDebounceTime)
   {
-    piezoOnsetDetected = true;
-    piezoOnsetTimestamp = timestamp;
+    _piezoOnsetDetected = true;
+    _piezoOnsetTimestamp = timestamp;
   }
-  touched = touchValue.getAverage() < touchThreshold;
+#endif
+#ifdef USE_TOUCH
+  _touched = _touchValue.getAverage() < _touchThreshold;
+#endif
 }
 
-void sendOSC()
+void send()
+// void networkTask(void *parameter)
 {
+  // if (_locked)
+  // {
+  //   return;
+  // }
 
+  // _locked = true;
+  auto piezoValue = _piezoValue;
+  auto accelX = _accelX;
+  auto accelY = _accelY;
+  auto accelZ = _accelZ;
+  auto angleX = _accelX;
+  auto angleY = _angleY;
+  auto angleZ = _angleZ;
+  // _locked = false;
 #ifdef USE_PIEZO
   // piezo
   OSCMessage piezoMessage("/sleeper/piezo");
@@ -83,13 +108,16 @@ void sendOSC()
 
 #ifdef USE_TOUCH
   // touch
-  OSCMessage touchMessage("/sleeper/touch");
-  touchMessage.add(ID);
-  touchMessage.add(touched);
-  Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
-  touchMessage.send(Udp);
-  Udp.endPacket();
-  touchMessage.empty();
+  if (_frameCounter % 20 == 0)
+  {
+    OSCMessage touchMessage("/sleeper/touch");
+    touchMessage.add(ID);
+    touchMessage.add(_touched ? 1 : 0);
+    Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
+    touchMessage.send(Udp);
+    Udp.endPacket();
+    touchMessage.empty();
+  }
 #endif
 
 #ifdef USE_ANGLE
@@ -131,11 +159,12 @@ void sendOSC()
 
 #ifdef USE_PIEZO_ONSET
   // piezoOnset
-  if (piezoOnsetDetected)
+  if (_piezoOnsetDetected)
   {
-    piezoOnsetDetected = false;
+    _piezoOnsetDetected = false;
     OSCMessage piezoOnsetMessage("/sleeper/piezo_onset");
     piezoOnsetMessage.add(ID);
+    piezoOnsetMessage.add(piezoValue);
     Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
     piezoOnsetMessage.send(Udp);
     Udp.endPacket();
@@ -145,9 +174,9 @@ void sendOSC()
 
 #ifdef USE_ACCEL_ONSET
   // accelOnset
-  if (accelOnsetDetected)
+  if (_accelOnsetDetected)
   {
-    accelOnsetDetected = false;
+    _accelOnsetDetected = false;
     OSCMessage accelOnsetMessage("/sleeper/accel_onset");
     accelOnsetMessage.add(ID);
     Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
@@ -161,7 +190,7 @@ void sendOSC()
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("setting up wifi with the following credentials");
+  Serial.println("setting up wifi with the following credentials:");
   String output = "SSID: " + String(SSID) + "\npassword: " + String(PASSWORD);
   Serial.println(output);
 
@@ -177,6 +206,7 @@ void setup()
   Serial.println(WiFi.localIP());
   delay(5000);
 
+#if defined(USE_ACCEL) || defined(USE_ANGLE) || defined(USE_ACCEL_ONSET) || defined(USE_TEMPERATURE)
   Serial.println();
   Serial.println(__FILE__);
   Serial.print("GY521_LIB_VERSION: ");
@@ -185,34 +215,37 @@ void setup()
   Wire.begin();
 
   delay(100);
-  while (sensor.wakeup() == false)
+  while (_sensor.wakeup() == false)
   {
     Serial.print(millis());
     Serial.println("\tCould not connect to GY521");
     delay(1000);
   }
-  sensor.setAccelSensitivity(2); //  8g
-  sensor.setGyroSensitivity(1);  //  500 degrees/s
+  _sensor.setAccelSensitivity(2); //  8g
+  _sensor.setGyroSensitivity(1);  //  500 degrees/s
 
-  sensor.setThrottle();
+  _sensor.setThrottle();
   Serial.println("start...");
 
   //  set calibration values from calibration sketch.
-  sensor.axe = 0.574;
-  sensor.aye = -0.002;
-  sensor.aze = -1.043;
-  sensor.gxe = 10.702;
-  sensor.gye = -6.436;
-  sensor.gze = -0.676;
+  _sensor.axe = 0.574;
+  _sensor.aye = -0.002;
+  _sensor.aze = -1.043;
+  _sensor.gxe = 10.702;
+  _sensor.gye = -6.436;
+  _sensor.gze = -0.676;
+#endif
 
   // touchAttachInterrupt(TOUCH_PIN, handleTouch, touchThreshold);
-  touchValue.clear();
+  _touchValue.clear();
+
+  // xTaskCreatePinnedToCore(networkTask, "networkTask", 10000, NULL, 1, &networkTaskHandle, 0);
 }
 
 void loop()
 {
-  frameCounter++;
+  _frameCounter++;
   readValues();
   processValues();
-  sendOSC();
+  send();
 }
