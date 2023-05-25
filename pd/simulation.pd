@@ -1,47 +1,60 @@
-#N canvas 361 385 1233 626 12;
+#N canvas 100 102 1591 737 12;
 #X obj 1093 25 import mrpeach;
-#X obj 52 246 packOSC;
-#X obj 34 336 udpsend;
-#X msg 40 57 disconnect;
-#X msg 112 195 send /sleeper/piezo_onset 1;
-#X obj 33 375 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#X obj 45 481 packOSC;
+#X obj 27 571 udpsend;
+#X msg 31 59 disconnect;
+#X msg 69 238 send /sleeper/piezo_onset 1;
+#X obj 26 610 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
 #000000 1 1;
-#X obj 110 115 bng 14 250 50 0 empty empty empty 17 7 0 10 #fcfcfc
-#000000 #000000;
-#X msg 347 195 send /sleeper/touch 1 \$1;
-#X obj 351 112 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#X obj 67 158 bng 14 250 50 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#000000;
+#X msg 251 422 send /sleeper/touch 1 \$1;
+#X obj 255 339 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
 #000000 0 1;
-#X msg 30 33 connect 127.0.0.1 8000;
-#X msg 556 194 send /sleeper/angle 1 \$1 \$2 \$3;
-#X msg 799 192 send /sleeper/accel 1 \$1 \$2 \$3;
-#X obj 557 34 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
-#000000 #000000 2900 1;
-#X text 700 32 x;
-#X obj 557 51 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
-#000000 #000000 2550 1;
-#X obj 557 69 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
-#000000 #000000 3700 1;
-#X text 699 48 y;
-#X text 700 68 z;
-#X obj 560 114 pack b f f f;
-#X obj 454 33 metro 50;
-#X obj 450 3 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000
-1 1;
-#X obj 560 141 route;
-#X obj 870 33 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
-#000000 #000000 2800 1;
-#X text 1013 31 x;
-#X obj 870 50 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
-#000000 #000000 5700 1;
-#X obj 870 68 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
-#000000 #000000 4400 1;
-#X text 1012 47 y;
-#X text 1013 67 z;
-#X obj 873 113 pack b f f f;
-#X obj 767 32 metro 50;
-#X obj 763 2 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000
-1 1;
-#X obj 873 140 route;
+#X msg 21 35 connect 127.0.0.1 8000;
+#X msg 761 443 send /sleeper/angle 1 \$1 \$2 \$3;
+#X msg 1077 441 send /sleeper/accel 1 \$1 \$2 \$3;
+#X obj 762 283 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X text 905 281 x;
+#X obj 762 300 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 762 318 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X text 904 297 y;
+#X text 905 317 z;
+#X obj 765 363 pack b f f f;
+#X obj 666 98 metro 50;
+#X obj 664 67 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 765 390 route;
+#X obj 1075 282 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X text 1217 276 x;
+#X obj 1075 299 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X obj 1075 317 hsl 128 15 0 1 0 0 empty empty empty -2 -8 0 10 #fcfcfc
+#000000 #000000 0 1;
+#X text 1216 292 y;
+#X text 1217 312 z;
+#X obj 1078 362 pack b f f f;
+#X obj 969 99 metro 50;
+#X obj 969 69 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#000000 0 1;
+#X obj 1078 389 route;
+#X obj 761 174 snapshot~;
+#X floatatom 762 248 5 0 0 0 - - -, f 5;
+#X obj 761 197 + 1;
+#X obj 761 223 / 2;
+#X obj 761 147 osc~ 0.5;
+#X obj 1075 163 snapshot~;
+#X floatatom 1076 237 5 0 0 0 - - -, f 5;
+#X obj 1075 186 + 1;
+#X obj 1075 212 / 2;
+#X obj 1075 136 osc~ 0.5;
+#X obj 275 158 bng 14 250 50 0 empty empty empty 17 7 0 10 #fcfcfc
+#000000 #000000;
+#X msg 277 238 send /sleeper/piezo2_onset 1;
 #X connect 1 0 2 0;
 #X connect 2 0 5 0;
 #X connect 3 0 2 0;
@@ -57,6 +70,7 @@
 #X connect 15 0 18 3;
 #X connect 18 0 21 0;
 #X connect 19 0 18 0;
+#X connect 19 0 32 0;
 #X connect 20 0 19 0;
 #X connect 21 0 10 0;
 #X connect 22 0 28 1;
@@ -64,5 +78,18 @@
 #X connect 25 0 28 3;
 #X connect 28 0 31 0;
 #X connect 29 0 28 0;
+#X connect 29 0 37 0;
 #X connect 30 0 29 0;
 #X connect 31 0 11 0;
+#X connect 32 0 34 0;
+#X connect 33 0 12 0;
+#X connect 34 0 35 0;
+#X connect 35 0 33 0;
+#X connect 36 0 32 0;
+#X connect 37 0 39 0;
+#X connect 38 0 22 0;
+#X connect 39 0 40 0;
+#X connect 40 0 38 0;
+#X connect 41 0 37 0;
+#X connect 42 0 43 0;
+#X connect 43 0 1 0;
