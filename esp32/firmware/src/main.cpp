@@ -3,6 +3,8 @@
 #include <OSCMessage.h>
 #include "GY521.h"
 #include "RunningAverage.h"
+#include <Ewma.h>
+
 #include "./config.h"
 
 xTaskHandle networkTaskHandle;
@@ -29,10 +31,15 @@ bool _touched2 = false;
 float _angleX;
 float _angleY;
 float _angleZ;
+
 // accel
 float _accelX;
 float _accelY;
 float _accelZ;
+Ewma _accelXFilter(0.1);   // Less smoothing - faster to detect changes, but more prone to noise
+Ewma _accelYFilter(0.1);  // More smoothing - less prone to noise, but slower to detect changes
+Ewma _accelZFilter(0.1);  // More smoothing - less prone to noise, but slower to detect changes
+
 bool _accelOnsetDetected = false;
 unsigned long accelOnsetTimestamp;
 // temperature
@@ -60,6 +67,37 @@ void readValues()
 #endif
   // temperature
   _temperature = _sensor.getTemperature();
+}
+
+void routeConfig(OSCMessage &msg, int addrOffset)
+{
+  // msg.isInt();
+  // frequency = msg.getInt(0);
+  Serial.println("route config");
+}
+void readOSC()
+{
+  OSCMessage msg;
+  int size = Udp.parsePacket();
+
+  if (size > 0)
+  {
+    while (size--)
+    {
+      msg.fill(Udp.read());
+    }
+    if (!msg.hasError())
+    {
+      Serial.println("got message");
+      msg.route("/config", routeConfig);
+    }
+    else
+    {
+      OSCErrorCode error = msg.getError();
+      Serial.print("error: ");
+      Serial.println(error);
+    }
+  }
 }
 
 void processValues()
@@ -178,9 +216,12 @@ void send()
   // accel
   OSCMessage accelMessage("/sleeper/accel");
   accelMessage.add(ID);
-  accelMessage.add(accelX);
-  accelMessage.add(accelY);
-  accelMessage.add(accelZ);
+  float x = (_accelXFilter.filter(accelX));
+  float y = (_accelYFilter.filter(accelY));
+  float z = (_accelZFilter.filter(accelZ));
+  accelMessage.add(x);
+  accelMessage.add(y);
+  accelMessage.add(z);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   accelMessage.send(Udp);
   Udp.endPacket();
@@ -260,6 +301,8 @@ void setup()
   Serial.println(WiFi.localIP());
   delay(5000);
 
+  Udp.begin(PORT);
+
 #if defined(USE_ACCEL) || defined(USE_ANGLE) || defined(USE_ACCEL_ONSET) || defined(USE_TEMPERATURE)
   Serial.println();
   Serial.println(__FILE__);
@@ -300,6 +343,7 @@ void loop()
 {
   _frameCounter++;
   readValues();
+  readOSC();
   processValues();
   send();
 }

@@ -2,6 +2,7 @@
 #define DESTINATION_IP "255.255.255.255"
 // #define DESTINATION_IP "192.168.0.18"
 #define DESTINATION_PORT 8000
+#define PORT 9000
 #define PIEZO_PIN 34
 #define PIEZO2_PIN 35
 #define TOUCH_PIN 4
