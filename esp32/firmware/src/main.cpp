@@ -16,9 +16,14 @@ unsigned long _frameCounter = 0;
 int _piezoValue;
 bool _piezoOnsetDetected = false;
 unsigned long _piezoOnsetTimestamp;
+int _piezo2Value;
+bool _piezo2OnsetDetected = false;
+unsigned long _piezo2OnsetTimestamp;
 // touch
 RunningAverage _touchValue(4);
+RunningAverage _touch2Value(4);
 bool _touched = false;
+bool _touched2 = false;
 
 // angle
 float _angleX;
@@ -37,8 +42,10 @@ void readValues()
 {
   // piezo
   _piezoValue = analogRead(PIEZO_PIN);
+  _piezo2Value = analogRead(PIEZO2_PIN);
   // touch
   _touchValue.addValue(touchRead(TOUCH_PIN));
+  _touch2Value.addValue(touchRead(TOUCH2_PIN));
 
 #if defined(USE_ACCEL) || defined(USE_ANGLE) || defined(USE_ACCEL_ONSET) || defined(USE_TEMPERATURE)
   _sensor.read();
@@ -72,9 +79,15 @@ void processValues()
     _piezoOnsetDetected = true;
     _piezoOnsetTimestamp = timestamp;
   }
+  if (_piezo2Value > _piezoOnsetThreshold && timestamp > _piezo2OnsetTimestamp + _piezoOnsetDebounceTime)
+  {
+    _piezo2OnsetDetected = true;
+    _piezo2OnsetTimestamp = timestamp;
+  }
 #endif
 #ifdef USE_TOUCH
   _touched = _touchValue.getAverage() < _touchThreshold;
+  _touched2 = _touch2Value.getAverage() < _touchThreshold;
 #endif
 }
 
@@ -88,18 +101,45 @@ void send()
 
   // _locked = true;
   auto piezoValue = _piezoValue;
+  auto piezo2Value = _piezo2Value;
   auto accelX = _accelX;
   auto accelY = _accelY;
   auto accelZ = _accelZ;
   auto angleX = _accelX;
   auto angleY = _angleY;
   auto angleZ = _angleZ;
+#if defined(COMBINED)
+  OSCMessage message("/sleeper/all");
+  message.add(ID);
+#ifdef USE_PIEZO
+  message.add(_piezoValue);
+  message.add(_piezo2Value);
+#endif
+#ifdef USE_TOUCH
+  message.add(_touched ? 1 : 0);
+  message.add(_touched2 ? 1 : 0);
+#endif
+#ifdef USE_ANGLE
+  message.add(angleX);
+  message.add(angleY);
+  message.add(angleZ);
+#endif
+#ifdef USE_ACCEL
+  message.add(accelX);
+  message.add(accelY);
+  message.add(accelZ);
+#endif
+  Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
+  message.send(Udp);
+  Udp.endPacket();
+  message.empty();
+#else
   // _locked = false;
 #ifdef USE_PIEZO
   // piezo
   OSCMessage piezoMessage("/sleeper/piezo");
   piezoMessage.add(ID);
-  piezoMessage.add(piezoValue);
+  piezoMessage.add(_piezoValue);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   piezoMessage.send(Udp);
   Udp.endPacket();
@@ -113,6 +153,7 @@ void send()
     OSCMessage touchMessage("/sleeper/touch");
     touchMessage.add(ID);
     touchMessage.add(_touched ? 1 : 0);
+    touchMessage.add(_touched2 ? 1 : 0);
     Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
     touchMessage.send(Udp);
     Udp.endPacket();
@@ -157,6 +198,22 @@ void send()
   temperatureMessage.empty();
 #endif
 
+#ifdef USE_ACCEL_ONSET
+  // accelOnset
+  if (_accelOnsetDetected)
+  {
+    _accelOnsetDetected = false;
+    OSCMessage accelOnsetMessage("/sleeper/accel_onset");
+    accelOnsetMessage.add(ID);
+    Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
+    accelOnsetMessage.send(Udp);
+    Udp.endPacket();
+    accelOnsetMessage.empty();
+  }
+#endif
+#endif // COMBINED
+
+// onset is sent not combined
 #ifdef USE_PIEZO_ONSET
   // piezoOnset
   if (_piezoOnsetDetected)
@@ -170,19 +227,16 @@ void send()
     Udp.endPacket();
     piezoOnsetMessage.empty();
   }
-#endif
-
-#ifdef USE_ACCEL_ONSET
-  // accelOnset
-  if (_accelOnsetDetected)
+  if (_piezo2OnsetDetected)
   {
-    _accelOnsetDetected = false;
-    OSCMessage accelOnsetMessage("/sleeper/accel_onset");
-    accelOnsetMessage.add(ID);
+    _piezo2OnsetDetected = false;
+    OSCMessage piezoOnsetMessage("/sleeper/piezo2_onset");
+    piezoOnsetMessage.add(ID);
+    piezoOnsetMessage.add(piezo2Value);
     Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
-    accelOnsetMessage.send(Udp);
+    piezoOnsetMessage.send(Udp);
     Udp.endPacket();
-    accelOnsetMessage.empty();
+    piezoOnsetMessage.empty();
   }
 #endif
 }
