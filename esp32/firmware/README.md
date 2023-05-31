@@ -12,9 +12,10 @@ this program reads and processes sensor data, finally broadcasts them via OSC.
 * monitor `pio device monitor`
 
 ## dev
-* activate features in platform.ini, by setting defines e.g. USE_TOUCH
+* enable features in platform.ini, by setting defines e.g. USE_TOUCH
 * /sleeper/piezo_onset id:i
 * /sleeper/piezo id:i value:i
 * /sleeper/touch id:i value:i
 * /sleeper/angle id:i x:f y:f z:f
 * /sleeper/acceleration id:i x:f y:f z:f
+* if COMBINED is defined, then all enabled sensor values will be sent as a single combined message
