@@ -36,9 +36,9 @@ float _angleZ;
 float _accelX;
 float _accelY;
 float _accelZ;
-Ewma _accelXFilter(0.1);   // Less smoothing - faster to detect changes, but more prone to noise
-Ewma _accelYFilter(0.1);  // More smoothing - less prone to noise, but slower to detect changes
-Ewma _accelZFilter(0.1);  // More smoothing - less prone to noise, but slower to detect changes
+Ewma _accelXFilter(0.1); // Less smoothing - faster to detect changes, but more prone to noise
+Ewma _accelYFilter(0.1); // More smoothing - less prone to noise, but slower to detect changes
+Ewma _accelZFilter(0.1); // More smoothing - less prone to noise, but slower to detect changes
 
 bool _accelOnsetDetected = false;
 unsigned long accelOnsetTimestamp;
@@ -71,31 +71,37 @@ void readValues()
 
 void routeConfig(OSCMessage &msg, int addrOffset)
 {
-  // msg.isInt();
-  // frequency = msg.getInt(0);
-  Serial.println("route config");
+    if (msg.isInt(0)) {
+    _piezoOnsetThreshold = msg.getInt(0);
+  }
+  if (msg.isInt(1)) {
+    _piezoOnsetDebounceTime = msg.getInt(1);
+  }
+  if (msg.isInt(2)) {
+    _touchThreshold = msg.getInt(2);
+  }
+  if (msg.isInt(3)) {
+    _accelOnsetThreshold = msg.getInt(3);
+  }
+  if (msg.isInt(4)) {
+    _accelOnsetDebounceTime = msg.getInt(4);
+  }
 }
 void readOSC()
 {
-  OSCMessage msg;
-  int size = Udp.parsePacket();
+  OSCBundle bundleIN;
+  int size;
 
-  if (size > 0)
+  if ((size = Udp.parsePacket()) > 0)
   {
     while (size--)
     {
-      msg.fill(Udp.read());
+      bundleIN.fill(Udp.read());
     }
-    if (!msg.hasError())
+
+    if (!bundleIN.hasError())
     {
-      Serial.println("got message");
-      msg.route("/config", routeConfig);
-    }
-    else
-    {
-      OSCErrorCode error = msg.getError();
-      Serial.print("error: ");
-      Serial.println(error);
+      bundleIN.route("/config", routeConfig);
     }
   }
 }

@@ -19,3 +19,4 @@ this program reads and processes sensor data, finally broadcasts them via OSC.
 * /sleeper/angle id:i x:f y:f z:f
 * /sleeper/acceleration id:i x:f y:f z:f
 * if COMBINED is defined, then all enabled sensor values will be sent as a single combined message
+* it can be configured via osc: port 9000, addr: /config, values: piezoOnsetThreshold:i piezoOnsetDebounceTime:i touchThreshold:i accelOnsetThreshold:i accelDebounceTime:i
