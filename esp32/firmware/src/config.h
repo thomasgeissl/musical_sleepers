@@ -7,6 +7,7 @@
 #define PIEZO2_PIN 35
 #define TOUCH_PIN 4
 #define TOUCH2_PIN 2
+#define EEPROM_SIZE 12
 
 int _piezoOnsetThreshold = 250;
 int _piezoOnsetDebounceTime = 50;

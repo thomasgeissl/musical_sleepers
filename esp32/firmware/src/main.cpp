@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <EEPROM.h>
 #include <OSCMessage.h>
+#include <OSCBundle.h>
 #include "GY521.h"
 #include "RunningAverage.h"
 #include <Ewma.h>
@@ -71,21 +73,54 @@ void readValues()
 
 void routeConfig(OSCMessage &msg, int addrOffset)
 {
-    if (msg.isInt(0)) {
+  if (msg.isInt(0))
+  {
     _piezoOnsetThreshold = msg.getInt(0);
   }
-  if (msg.isInt(1)) {
+  if (msg.isInt(1))
+  {
     _piezoOnsetDebounceTime = msg.getInt(1);
   }
-  if (msg.isInt(2)) {
+  if (msg.isInt(2))
+  {
     _touchThreshold = msg.getInt(2);
   }
-  if (msg.isInt(3)) {
+  if (msg.isInt(3))
+  {
     _accelOnsetThreshold = msg.getInt(3);
   }
-  if (msg.isInt(4)) {
+  if (msg.isInt(4))
+  {
     _accelOnsetDebounceTime = msg.getInt(4);
   }
+}
+void loadSettings()
+{
+    int address = 0;
+  int hasStoredSettings = EEPROM.read(address);
+  if (hasStoredSettings == 1)
+  {
+    address += sizeof(hasStoredSettings);
+    _piezoOnsetThreshold = EEPROM.read(address);
+    address += sizeof(_piezoOnsetThreshold);
+    _piezoOnsetDebounceTime = EEPROM.read(address);
+    address += sizeof(_piezoOnsetDebounceTime);
+    _touchThreshold = EEPROM.read(address);
+    address += sizeof(_touchThreshold);
+  }
+}
+void storeSettings()
+{
+  int address = 0;
+  EEPROM.write(address, 1); // hasStoredSettings
+  address += sizeof(1);
+  EEPROM.write(address, _piezoOnsetThreshold);
+  address += sizeof(_piezoOnsetThreshold);
+  EEPROM.write(address, _piezoOnsetDebounceTime);
+  address += sizeof(_piezoOnsetDebounceTime);
+  EEPROM.write(address, _touchThreshold);
+  address += sizeof(_touchThreshold);
+  EEPROM.commit();
 }
 void readOSC()
 {
@@ -291,6 +326,12 @@ void send()
 void setup()
 {
   Serial.begin(115200);
+
+  Serial.println("loading stored settings");
+  EEPROM.begin(EEPROM_SIZE);
+  loadSettings();
+
+
   Serial.println("setting up wifi with the following credentials:");
   String output = "SSID: " + String(SSID) + "\npassword: " + String(PASSWORD);
   Serial.println(output);
@@ -348,8 +389,8 @@ void setup()
 void loop()
 {
   _frameCounter++;
-  readValues();
   readOSC();
+  readValues();
   processValues();
   send();
 }
