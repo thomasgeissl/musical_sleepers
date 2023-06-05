@@ -6,6 +6,7 @@
 #include "GY521.h"
 #include "RunningAverage.h"
 #include <Ewma.h>
+#include "Adafruit_ZeroFFT.h"
 
 #include "./config.h"
 
