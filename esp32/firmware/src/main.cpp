@@ -17,12 +17,13 @@ GY521 _sensor(0x68);
 
 unsigned long _frameCounter = 0;
 // piezo
-int _piezoValue;
 bool _piezoOnsetDetected = false;
-unsigned long _piezoOnsetTimestamp;
-int _piezo2Value;
 bool _piezo2OnsetDetected = false;
+unsigned long _piezoOnsetTimestamp;
 unsigned long _piezo2OnsetTimestamp;
+int16_t _fftData[FFT_DATA_SIZE];
+int16_t _fftData2[FFT_DATA_SIZE];
+
 // touch
 RunningAverage _touchValue(4);
 RunningAverage _touch2Value(4);
@@ -38,9 +39,9 @@ float _angleZ;
 float _accelX;
 float _accelY;
 float _accelZ;
-Ewma _accelXFilter(0.1); // Less smoothing - faster to detect changes, but more prone to noise
-Ewma _accelYFilter(0.1); // More smoothing - less prone to noise, but slower to detect changes
-Ewma _accelZFilter(0.1); // More smoothing - less prone to noise, but slower to detect changes
+Ewma _accelXFilter(0.1);
+Ewma _accelYFilter(0.1); 
+Ewma _accelZFilter(0.1); 
 
 bool _accelOnsetDetected = false;
 unsigned long accelOnsetTimestamp;
@@ -50,9 +51,31 @@ float _temperature;
 void readValues()
 {
   // piezo
-  _piezoValue = analogRead(PIEZO_PIN);
-  _piezo2Value = analogRead(PIEZO2_PIN);
-  // touch
+  int32_t avg = 0;
+  int32_t avg2 = 0;
+  for (int i = 0; i < FFT_DATA_SIZE; i++)
+  {
+    int16_t val = analogRead(PIEZO_PIN);
+    int16_t val2 = analogRead(PIEZO2_PIN);
+    avg += val;
+    avg2 += val2;
+    _fftData[i] = val;
+    _fftData2[i] = val2;
+  }
+
+  // remove DC offset and gain up to 16 bits
+  avg = avg / FFT_DATA_SIZE;
+  for (int i = 0; i < FFT_DATA_SIZE; i++)
+  {
+    _fftData[i] = (_fftData[i] - avg) * 64;
+    _fftData2[i] = (_fftData2[i] - avg2) * 64;
+  }
+
+  // run the FFT
+  ZeroFFT(_fftData, FFT_DATA_SIZE);
+  ZeroFFT(_fftData2, FFT_DATA_SIZE);
+
+    // touch
   _touchValue.addValue(touchRead(TOUCH_PIN));
   _touch2Value.addValue(touchRead(TOUCH2_PIN));
 
@@ -96,7 +119,7 @@ void routeConfig(OSCMessage &msg, int addrOffset)
 }
 void loadSettings()
 {
-    int address = 0;
+  int address = 0;
   int hasStoredSettings = EEPROM.read(address);
   if (hasStoredSettings == 1)
   {
@@ -153,12 +176,12 @@ void processValues()
   }
 #endif
 #ifdef USE_PIEZO_ONSET
-  if (_piezoValue > _piezoOnsetThreshold && timestamp > _piezoOnsetTimestamp + _piezoOnsetDebounceTime)
+  if (_fftData[0] > _piezoOnsetThreshold && timestamp > _piezoOnsetTimestamp + _piezoOnsetDebounceTime)
   {
     _piezoOnsetDetected = true;
     _piezoOnsetTimestamp = timestamp;
   }
-  if (_piezo2Value > _piezoOnsetThreshold && timestamp > _piezo2OnsetTimestamp + _piezoOnsetDebounceTime)
+  if (_fftData2[0] > _piezoOnsetThreshold && timestamp > _piezo2OnsetTimestamp + _piezoOnsetDebounceTime)
   {
     _piezo2OnsetDetected = true;
     _piezo2OnsetTimestamp = timestamp;
@@ -179,8 +202,8 @@ void send()
   // }
 
   // _locked = true;
-  auto piezoValue = _piezoValue;
-  auto piezo2Value = _piezo2Value;
+  auto piezoValue = _fftData[0];
+  auto piezo2Value = _fftData2[0];
   auto accelX = _accelX;
   auto accelY = _accelY;
   auto accelZ = _accelZ;
@@ -191,8 +214,8 @@ void send()
   OSCMessage message("/sleeper/all");
   message.add(ID);
 #ifdef USE_PIEZO
-  message.add(_piezoValue);
-  message.add(_piezo2Value);
+  message.add(piezoValue);
+  message.add(piezo2Value);
 #endif
 #ifdef USE_TOUCH
   message.add(_touched ? 1 : 0);
@@ -218,7 +241,8 @@ void send()
   // piezo
   OSCMessage piezoMessage("/sleeper/piezo");
   piezoMessage.add(ID);
-  piezoMessage.add(_piezoValue);
+  piezoMessage.add(piezoValue);
+  piezoMessage.add(piezo2Value);
   Udp.beginPacket(DESTINATION_IP, DESTINATION_PORT);
   piezoMessage.send(Udp);
   Udp.endPacket();
@@ -330,7 +354,6 @@ void setup()
   Serial.println("loading stored settings");
   EEPROM.begin(EEPROM_SIZE);
   loadSettings();
-
 
   Serial.println("setting up wifi with the following credentials:");
   String output = "SSID: " + String(SSID) + "\npassword: " + String(PASSWORD);
